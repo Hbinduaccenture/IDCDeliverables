@@ -1,0 +1,32 @@
+
+#!/bin/sh
+#---------------------------------------------------------------------------
+#--Program Name        : XXNBTY_GL_CNV_JRNLUPL
+#--Author’s name       : Anirban Das (NBTY ERP Implementation)
+#--Date written        : 20-DEC-2012
+#--RICEFW Object id    : NBTY-FIN-C-001
+#--Description         : This program is for loading multiple data files from a
+#--                      a directory in GL Journals Line Conversion in XBOL_TOP
+#--Program Style       : Subordinate
+#--Maintenance History :
+#--Date           Issue#   Name          Remarks
+#---------------------------------------------------------------------------
+#--20-DEC-2012             Anirban Das   Initial development.
+#---------------------------------------------------------------------------
+echo "START"
+login_usr_pwd=`(echo $1 | cut -f3 -d' ' | cut -f2 -d= | tr -d '"' )`
+cd $INTERFACE_HOME/incoming/data
+for i in NBTY_GL_CNV*.csv
+do
+export fspec=$INTERFACE_HOME/incoming/data/$i
+sqlldr userid=$login_usr_pwd control=$XBOL_TOP/bin/XXNBTY_GL_CNV_001.ctl data=$INTERFACE_HOME/incoming/data/$i rows=1000 direct=true
+fname=`basename $fspec`
+echo $fname
+sqlplus -s $login_usr_pwd <<EOF
+update XXNBTY_GL_INTERFACE_STG_TB SET FILENAME = REVERSE(substr(REVERSE('$fname'),5)) WHERE FILENAME IS NULL; 
+commit; 
+exit; 
+EOF
+done
+mv $INTERFACE_HOME/incoming/data/NBTY_GL_CNV*.csv $INTERFACE_HOME/archive/NBTY_GL_JOURNAL_PROCESSED_FILES
+echo "END"
